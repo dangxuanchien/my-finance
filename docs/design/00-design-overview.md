@@ -1,0 +1,1 @@
+Business Flow → Database → API → Frontend → Backend → Architecture
