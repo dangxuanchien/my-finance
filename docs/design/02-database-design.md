@@ -134,72 +134,382 @@ Store system users.
 
 ## Purpose
 
-Store user's financial accounts.
+Store user's financial accounts used to record financial transactions.
 
-Examples:
+An account represents a source or destination of money, such as:
 
 * Bank account
-* Cash wallet
+* Cash
+* E-wallet
 * Credit card
+
+---
 
 ## Columns
 
-| Column         | Type         | Constraint  | Description    |
-| -------------- | ------------ | ----------- | -------------- |
-| id             | UUID         | PK          | Account ID     |
-| user_id        | UUID         | FK          | Owner          |
-| name           | VARCHAR(100) | NOT NULL    | Account name   |
-| bank_name      | VARCHAR(100) | NULL        | Bank provider  |
-| account_number | VARCHAR(50)  | NULL        | Account number |
-| account_type   | ENUM         | NOT NULL    | Account type   |
-| currency       | VARCHAR(10)  | DEFAULT VND | Currency       |
-| created_at     | TIMESTAMP    |             | Created time   |
-| updated_at     | TIMESTAMP    |             | Updated time   |
+| Column         | Type         | Constraint   | Description                        |
+| -------------- | ------------ | ------------ | ---------------------------------- |
+| id             | UUID         | PK           | Account identifier                 |
+| user_id        | UUID         | FK, NOT NULL | Owner of the account               |
+| name           | VARCHAR(100) | NOT NULL     | Display name of the account        |
+| account_type   | ENUM         | NOT NULL     | Type of financial account          |
+| bank_name      | VARCHAR(100) | NULL         | Bank or financial institution name |
+| bank_code      | VARCHAR(20)  | NULL         | Bank code (e.g. VCB, TCB, ACB)     |
+| account_number | VARCHAR(50)  | NULL         | Bank account number                |
+| currency       | VARCHAR(10)  | NOT NULL     | Currency used by the account       |
+| status         | ENUM         | NOT NULL     | Current account status             |
+| created_at     | TIMESTAMP    | NOT NULL     | Created timestamp                  |
+| updated_at     | TIMESTAMP    | NOT NULL     | Updated timestamp                  |
+
+---
 
 ## Account Type
 
-```
+Defines the type of financial account.
+
+Values:
+
+```text
 BANK
 CASH
+WALLET
 CREDIT_CARD
 OTHER
 ```
 
+Examples:
+
+| Type        | Example                  |
+| ----------- | ------------------------ |
+| BANK        | Vietcombank, Techcombank |
+| CASH        | Cash in wallet           |
+| WALLET      | MoMo, ZaloPay, ShopeePay |
+| CREDIT_CARD | Visa Credit Card         |
+| OTHER       | Other financial accounts |
+
 ---
+
+## Account Status
+
+Defines whether the account is currently in use.
+
+Values:
+
+```text
+ACTIVE
+INACTIVE
+```
+
+Examples:
+
+| Status   | Description                                                   |
+| -------- | ------------------------------------------------------------- |
+| ACTIVE   | Account is available for normal use                           |
+| INACTIVE | Account is no longer used but transaction history is retained |
+
+---
+
+## Field Details
+
+### name
+
+User-friendly name displayed throughout the application.
+
+Examples:
+
+```text
+Techcombank Payroll
+Cash Wallet
+MoMo
+```
+
+---
+
+### account_type
+
+Determines the behavior and presentation of the account.
+
+This field is used for:
+
+* Filtering accounts
+* Dashboard grouping
+* Future business rules
+
+---
+
+### bank_name
+
+Stores the full name of the bank or financial institution.
+
+Examples:
+
+```text
+Vietcombank
+Techcombank
+MB Bank
+```
+
+This field may be NULL for non-bank accounts such as Cash or E-wallet.
+
+---
+
+### bank_code
+
+Stores a short identifier of the bank.
+
+Examples:
+
+```text
+VCB
+TCB
+MBB
+ACB
+```
+
+Used for:
+
+* Bank identification
+* Future integrations
+* Import mapping
+
+This field may be NULL for non-bank accounts.
+
+---
+
+### account_number
+
+Stores the bank account number when applicable.
+
+Examples:
+
+```text
+0123456789
+123456789012
+```
+
+This field is optional because:
+
+* Cash accounts do not have an account number.
+* Some e-wallets may not expose an account number.
+
+---
+
+### currency
+
+Currency used by the account.
+
+Default currency for MVP:
+
+```text
+VND
+```
+
+Future versions may support:
+
+```text
+USD
+EUR
+JPY
+```
+
+---
+
+### status
+
+Accounts should not be physically deleted because they may have existing transactions.
+
+Instead, an account should be marked as **INACTIVE** when it is no longer used.
+
+This preserves transaction history while preventing new transactions from being created.
+
+---
+
+## Design Decisions
+
+### Included in MVP
+
+| Requirement                  | Fields                               |
+| ---------------------------- | ------------------------------------ |
+| Multiple financial accounts  | account_type                         |
+| Support bank accounts        | bank_name, bank_code, account_number |
+| Support cash and e-wallets   | account_type                         |
+| Multi-currency ready         | currency                             |
+| Preserve transaction history | status                               |
+
+### Not Included in MVP
+
+| Feature                 | Reason                                   |
+| ----------------------- | ---------------------------------------- |
+| Current account balance | Calculated from transactions when needed |
+| Bank API integration    | Planned for future versions              |
+| Account color/theme     | UI enhancement                           |
+| Account icon            | UI enhancement                           |
 
 # 5.3 import_batches
 
 ## Purpose
 
-Store information about imported bank transaction files.
+Store metadata for each imported transaction file.
 
-This table helps:
+An import batch represents a single import operation performed by the user. It helps track the import history, monitor processing status, and associate imported transactions with their original source.
 
-* Track import history
-* Avoid duplicated imports
-* Audit uploaded files
+---
 
 ## Columns
 
-| Column      | Type         | Constraint |
-| ----------- | ------------ | ---------- |
-| id          | UUID         | PK         |
-| account_id  | UUID         | FK         |
-| file_name   | VARCHAR(255) | NOT NULL   |
-| file_type   | VARCHAR(20)  | NOT NULL   |
-| status      | ENUM         | NOT NULL   |
-| imported_at | TIMESTAMP    |            |
+| Column           | Type         | Constraint   | Description                                   |
+| ---------------- | ------------ | ------------ | --------------------------------------------- |
+| id               | UUID         | PK           | Import batch identifier                       |
+| account_id       | UUID         | FK, NOT NULL | Account associated with the imported file     |
+| file_name        | VARCHAR(255) | NOT NULL     | Original uploaded file name                   |
+| file_type        | ENUM         | NOT NULL     | File format                                   |
+| file_hash        | VARCHAR(255) | NOT NULL     | Hash of uploaded file for duplicate detection |
+| import_status    | ENUM         | NOT NULL     | Current import status                         |
+| total_records    | INTEGER      | NOT NULL     | Total number of records found in the file     |
+| imported_records | INTEGER      | NOT NULL     | Successfully imported records                 |
+| failed_records   | INTEGER      | NOT NULL     | Records that failed during import             |
+| imported_at      | TIMESTAMP    | NOT NULL     | Import completed time                         |
+| created_at       | TIMESTAMP    | NOT NULL     | Created timestamp                             |
+| updated_at       | TIMESTAMP    | NOT NULL     | Updated timestamp                             |
+
+---
+
+## File Type
+
+Defines the uploaded file format.
+
+Values:
+
+```text
+CSV
+XLSX
+```
+
+Future extensions:
+
+```text
+PDF
+OFX
+QIF
+```
+
+---
 
 ## Import Status
 
-```
+Represents the current state of an import process.
+
+Values:
+
+```text
 PENDING
 PROCESSING
 SUCCESS
 FAILED
+PARTIAL_SUCCESS
+```
+
+Examples:
+
+| Status          | Description                        |
+| --------------- | ---------------------------------- |
+| PENDING         | Waiting to be processed            |
+| PROCESSING      | Import is currently running        |
+| SUCCESS         | All records imported successfully  |
+| FAILED          | Import failed completely           |
+| PARTIAL_SUCCESS | Some records imported, some failed |
+
+---
+
+## Field Details
+
+### file_name
+
+Stores the original name of the uploaded file.
+
+Example:
+
+```text
+VCB_Transaction_2026_07.csv
 ```
 
 ---
+
+### file_hash
+
+A unique hash generated from the uploaded file.
+
+Used for:
+
+* Preventing duplicate imports
+* Verifying file integrity
+* Detecting identical uploads
+
+---
+
+### total_records
+
+Total number of transaction records detected in the uploaded file.
+
+---
+
+### imported_records
+
+Number of records successfully saved into the system.
+
+---
+
+### failed_records
+
+Number of records that could not be imported.
+
+This information helps users identify import issues.
+
+---
+
+### imported_at
+
+Timestamp when the import process finished successfully or partially.
+
+---
+
+## Relationship
+
+One import batch can generate multiple transactions.
+
+```text
+Import Batch
+      |
+      | 1
+      |
+      |------< Transaction
+```
+
+Each transaction imported from the same file references the corresponding `import_batch_id`.
+
+---
+
+## Design Decisions
+
+### Included in MVP
+
+| Requirement                | Fields                                          |
+| -------------------------- | ----------------------------------------------- |
+| Import history             | file_name, imported_at                          |
+| Duplicate file detection   | file_hash                                       |
+| Import progress            | import_status                                   |
+| Import summary             | total_records, imported_records, failed_records |
+| Link imported transactions | account_id                                      |
+
+### Future Extensions
+
+| Feature                      | Description           |
+| ---------------------------- | --------------------- |
+| Store uploaded file location | file_path             |
+| Import execution logs        | import_log            |
+| Error details per record     | error_report          |
+| Support scheduled imports    | imported_by_scheduler |
+
 
 # 5.4 transactions
 
@@ -464,7 +774,7 @@ match an existing record.
 | 2026-07-10 | 12:30 | GRAB FOOD HCM | -120000  | EXPENSE | Lunch          |
 | 2026-07-01 | 09:00 | SALARY JULY   | 15000000 | INCOME  | Monthly salary |
 
-# Index Strategy
+## Index Strategy
 
 Recommended indexes:
 
@@ -560,67 +870,393 @@ ON transactions(category_id);
 
 ## Purpose
 
-Store transaction categories.
+Store transaction categories for classifying income and expense transactions.
 
-Examples:
+The system provides a set of predefined categories while allowing users to create their own custom categories.
 
-```
-Food
- ├── Restaurant
- └── Coffee
+Categories are owned by a user rather than an account, enabling consistent financial reporting across multiple accounts.
 
-Transport
- ├── Grab
- └── Fuel
-```
+---
 
 ## Columns
 
-| Column     | Type         | Constraint |
-| ---------- | ------------ | ---------- |
-| id         | UUID         | PK         |
-| user_id    | UUID         | FK         |
-| name       | VARCHAR(100) | NOT NULL   |
-| parent_id  | UUID         | NULL       |
-| icon       | VARCHAR(100) | NULL       |
-| created_at | TIMESTAMP    |            |
-| updated_at | TIMESTAMP    |            |
+| Column        | Type         | Constraint | Description                                       |
+| ------------- | ------------ | ---------- | ------------------------------------------------- |
+| id            | UUID         | PK         | Category identifier                               |
+| user_id       | UUID         | FK, NULL   | Owner of the category. NULL for system categories |
+| parent_id     | UUID         | FK, NULL   | Parent category for hierarchical structure        |
+| name          | VARCHAR(100) | NOT NULL   | Category name                                     |
+| icon          | VARCHAR(100) | NULL       | Icon identifier for UI                            |
+| color         | VARCHAR(20)  | NULL       | Display color                                     |
+| category_type | ENUM         | NOT NULL   | System or custom category                         |
+| status        | ENUM         | NOT NULL   | Current category status                           |
+| created_at    | TIMESTAMP    | NOT NULL   | Created timestamp                                 |
+| updated_at    | TIMESTAMP    | NOT NULL   | Updated timestamp                                 |
 
 ---
+
+## Category Type
+
+Defines who owns the category.
+
+Values:
+
+```text
+SYSTEM
+CUSTOM
+```
+
+Examples:
+
+| Type   | Description                                    |
+| ------ | ---------------------------------------------- |
+| SYSTEM | Default categories provided by the application |
+| CUSTOM | Categories created by the user                 |
+
+---
+
+## Category Status
+
+Defines whether a category is available for use.
+
+Values:
+
+```text
+ACTIVE
+INACTIVE
+```
+
+---
+
+## Field Details
+
+### user_id
+
+* `NULL` indicates a system category.
+* A UUID indicates a user-created category.
+
+Examples:
+
+| user_id  | Meaning                   |
+| -------- | ------------------------- |
+| NULL     | Food (system category)    |
+| user-123 | Wedding (custom category) |
+
+---
+
+### parent_id
+
+Supports hierarchical categories.
+
+Example:
+
+```text
+Food
+├── Restaurant
+├── Coffee
+└── Grocery
+```
+
+Parent categories can be used to aggregate reports.
+
+---
+
+### name
+
+Display name shown throughout the application.
+
+Examples:
+
+```text
+Food
+Transportation
+Shopping
+Coffee
+Salary
+```
+
+---
+
+### icon
+
+Stores an icon identifier used by the frontend.
+
+Examples:
+
+```text
+restaurant
+shopping-cart
+wallet
+car
+coffee
+```
+
+---
+
+### color
+
+Stores the display color for charts and reports.
+
+Examples:
+
+```text
+#FF9800
+#4CAF50
+#2196F3
+```
+
+---
+
+### status
+
+Categories should not be permanently deleted if they are referenced by transactions.
+
+Instead, mark them as **INACTIVE** to preserve historical data.
+
+---
+
+## Relationship
+
+One category can be assigned to many transactions.
+
+```text
+Category
+      |
+      | 1
+      |
+      |------< Transaction
+```
+
+Categories can also form a hierarchy using `parent_id`.
+
+```text
+Food
+├── Restaurant
+├── Coffee
+└── Grocery
+```
+
+---
+
+## Design Decisions
+
+### Included in MVP
+
+| Requirement                  | Design            |
+| ---------------------------- | ----------------- |
+| Default categories           | SYSTEM categories |
+| User-defined categories      | CUSTOM categories |
+| Category hierarchy           | parent_id         |
+| Dashboard visualization      | icon, color       |
+| Preserve transaction history | status            |
+
+### Future Extensions
+
+| Feature                       | Description                         |
+| ----------------------------- | ----------------------------------- |
+| Category budget               | Monthly spending limit per category |
+| Category ordering             | Custom display order                |
+| Multi-language category names | Localization support                |
+| AI-generated categories       | Automatic category suggestions      |
 
 # 5.6 category_rules
 
 ## Purpose
 
-Automatically classify transactions based on description.
+Store rules for automatically assigning categories to transactions during the import process.
 
-Example:
+Each rule matches a keyword against the original transaction description and assigns the corresponding category.
 
-Transaction:
-
-```
-GRAB FOOD HCM
-```
-
-Rule:
-
-```
-keyword = GRAB
-category = Food
-```
+---
 
 ## Columns
 
-| Column      | Type         | Constraint |
-| ----------- | ------------ | ---------- |
-| id          | UUID         | PK         |
-| user_id     | UUID         | FK         |
-| keyword     | VARCHAR(100) | NOT NULL   |
-| category_id | UUID         | FK         |
-| priority    | INT          | DEFAULT 0  |
-| created_at  | TIMESTAMP    |            |
+| Column      | Type         | Constraint   | Description                                    |
+| ----------- | ------------ | ------------ | ---------------------------------------------- |
+| id          | UUID         | PK           | Rule identifier                                |
+| user_id     | UUID         | FK, NULL     | Owner of the rule. NULL for system rules       |
+| category_id | UUID         | FK, NOT NULL | Category assigned when the rule matches        |
+| keyword     | VARCHAR(255) | NOT NULL     | Keyword used to match transaction descriptions |
+| match_type  | ENUM         | NOT NULL     | Matching strategy                              |
+| priority    | INTEGER      | NOT NULL     | Rule execution priority                        |
+| rule_type   | ENUM         | NOT NULL     | System or custom rule                          |
+| status      | ENUM         | NOT NULL     | Current rule status                            |
+| created_at  | TIMESTAMP    | NOT NULL     | Created timestamp                              |
+| updated_at  | TIMESTAMP    | NOT NULL     | Updated timestamp                              |
 
 ---
+
+## Rule Type
+
+Defines who owns the rule.
+
+Values:
+
+```text
+SYSTEM
+CUSTOM
+```
+
+Examples:
+
+| Type   | Description                                |
+| ------ | ------------------------------------------ |
+| SYSTEM | Built-in rules provided by the application |
+| CUSTOM | Rules created by the user                  |
+
+---
+
+## Match Type
+
+Defines how the keyword is matched against the transaction description.
+
+Values:
+
+```text
+CONTAINS
+```
+
+Future extensions:
+
+```text
+STARTS_WITH
+ENDS_WITH
+EXACT
+REGEX
+```
+
+---
+
+## Rule Status
+
+Defines whether a rule is active.
+
+Values:
+
+```text
+ACTIVE
+INACTIVE
+```
+
+---
+
+## Field Details
+
+### keyword
+
+Keyword used to match the original transaction description.
+
+Examples:
+
+```text
+GRAB
+NETFLIX
+HIGHLANDS
+STARBUCKS
+```
+
+Matching is performed against the original `description` field stored in the `transactions` table.
+
+---
+
+### priority
+
+Determines which rule should be applied when multiple rules match the same transaction.
+
+Rules with higher priority are evaluated first.
+
+Example:
+
+| Keyword   | Category       | Priority |
+| --------- | -------------- | -------: |
+| GRAB FOOD | Food           |      100 |
+| GRAB      | Transportation |       50 |
+
+Transaction:
+
+```text
+GRAB FOOD HCM
+```
+
+The first rule is applied because it has the higher priority.
+
+---
+
+### rule_type
+
+System rules are provided by the application and cannot be modified.
+
+Custom rules are created and managed by the user.
+
+---
+
+### status
+
+Inactive rules are ignored during transaction categorization but remain stored for future use.
+
+---
+
+## Relationship
+
+One category can be referenced by multiple rules.
+
+```text
+Category
+      |
+      | 1
+      |
+      |------< Category Rule
+```
+
+One rule can classify many transactions over time.
+
+---
+
+## Rule Evaluation Flow
+
+```text
+Transaction Imported
+        │
+        ▼
+Read transaction.description
+        │
+        ▼
+Find ACTIVE rules
+        │
+        ▼
+Sort by priority
+        │
+        ▼
+Apply first matching rule
+        │
+        ▼
+Assign category_id
+```
+
+---
+
+## Design Decisions
+
+### Included in MVP
+
+| Requirement              | Design           |
+| ------------------------ | ---------------- |
+| Automatic categorization | Keyword matching |
+| Built-in rules           | SYSTEM           |
+| User-defined rules       | CUSTOM           |
+| Rule priority            | priority         |
+| Enable / Disable rule    | status           |
+
+### Future Extensions
+
+| Feature              | Description                     |
+| -------------------- | ------------------------------- |
+| Regex matching       | Advanced keyword matching       |
+| AI categorization    | AI-assisted category prediction |
+| Multiple conditions  | AND / OR conditions             |
+| Merchant-based rules | Match normalized merchant names |
+| Amount-based rules   | Match by transaction amount     |
+| Date-based rules     | Match by transaction date       |
 
 # 6. Relationship Definition
 
@@ -628,15 +1264,55 @@ category = Food
 
 Relationship:
 
-```
-One User has many Accounts
-```
+One User has many Accounts.
 
-Foreign key:
+Foreign Key:
 
-```
 accounts.user_id -> users.id
-```
+
+---
+
+## User - Category
+
+Relationship:
+
+One User has many Custom Categories.
+
+Foreign Key:
+
+categories.user_id -> users.id
+
+Note:
+
+System categories have `user_id = NULL`.
+
+---
+
+## User - Category Rule
+
+Relationship:
+
+One User has many Custom Category Rules.
+
+Foreign Key:
+
+category_rules.user_id -> users.id
+
+Note:
+
+System rules have `user_id = NULL`.
+
+---
+
+## Account - Import Batch
+
+Relationship:
+
+One Account has many Import Batches.
+
+Foreign Key:
+
+import_batches.account_id -> accounts.id
 
 ---
 
@@ -644,15 +1320,27 @@ accounts.user_id -> users.id
 
 Relationship:
 
-```
-One Account has many Transactions
-```
+One Account has many Transactions.
 
-Foreign key:
+Foreign Key:
 
-```
 transactions.account_id -> accounts.id
-```
+
+---
+
+## Import Batch - Transaction
+
+Relationship:
+
+One Import Batch has many Transactions.
+
+Foreign Key:
+
+transactions.import_batch_id -> import_batches.id
+
+Note:
+
+Manual transactions have `import_batch_id = NULL`.
 
 ---
 
@@ -660,17 +1348,47 @@ transactions.account_id -> accounts.id
 
 Relationship:
 
-```
-One Category has many Transactions
-```
+One Category has many Transactions.
 
-Foreign key:
+Foreign Key:
 
-```
 transactions.category_id -> categories.id
-```
 
 ---
+
+## Category - Category Rule
+
+Relationship:
+
+One Category has many Category Rules.
+
+Foreign Key:
+
+category_rules.category_id -> categories.id
+
+---
+
+## Category - Category (Self Reference)
+
+Relationship:
+
+One Category can have multiple child categories.
+
+Foreign Key:
+
+categories.parent_id -> categories.id
+
+---
+
+## Transaction - Transaction (Self Reference)
+
+Relationship:
+
+One Transaction may reference another Transaction for transfer operations.
+
+Foreign Key:
+
+transactions.transfer_transaction_id -> transactions.id
 
 # 7. Index Strategy
 
