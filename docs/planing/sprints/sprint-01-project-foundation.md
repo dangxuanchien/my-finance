@@ -10,7 +10,7 @@ Setup the project foundation and development environment.
 
 ## Status
 
-⬜ Not Started
+🟡 In Progress
 
 ## Description
 
@@ -32,19 +32,19 @@ As a developer, I want to initialize the project so that future features can be 
 
 ### Repository
 
-- [ ] Initialize Git Repository
-- [ ] Configure README
-- [ ] Configure Git Ignore
+- [x] Initialize Git Repository
+- [x] Configure README
+- [x] Configure Git Ignore
 - [ ] Setup Branch Strategy
 
 ### Backend
 
-- [ ] Initialize NestJS
-- [ ] Configure TypeScript
-- [ ] Install Prisma
+- [x] Initialize NestJS
+- [x] Configure TypeScript
+- [x] Install Prisma
 - [ ] Connect PostgreSQL
-- [ ] Setup Swagger
-- [ ] Create Health API
+- [x] Setup Swagger
+- [x] Create Health API
 
 ### Frontend
 
