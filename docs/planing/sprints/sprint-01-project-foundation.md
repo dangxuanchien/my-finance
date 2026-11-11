@@ -24,11 +24,11 @@ As a developer, I want to initialize the project so that future features can be 
 
 ### Documentation
 
-- [ ] Complete Project Overview
-- [ ] Complete Requirements
-- [ ] Complete Roadmap
-- [ ] Design ERD
-- [ ] Design REST API
+- [x] Complete Project Overview
+- [x] Complete Requirements
+- [x] Complete Roadmap
+- [x] Design ERD
+- [x] Design REST API
 
 ### Repository
 
