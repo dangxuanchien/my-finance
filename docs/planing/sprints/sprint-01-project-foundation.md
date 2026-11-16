@@ -42,7 +42,7 @@ As a developer, I want to initialize the project so that future features can be 
 - [x] Initialize NestJS
 - [x] Configure TypeScript
 - [x] Install Prisma
-- [ ] Connect PostgreSQL
+- [x] Connect PostgreSQL
 - [x] Setup Swagger
 - [x] Create Health API
 
@@ -56,9 +56,9 @@ As a developer, I want to initialize the project so that future features can be 
 
 ### DevOps
 
-- [ ] Docker Compose
-- [ ] PostgreSQL Container
-- [ ] pgAdmin
+- [x] Docker Compose
+- [x] PostgreSQL Container
+- [x] pgAdmin
 
 ## Done Criteria
 
